@@ -7,9 +7,27 @@ import ScoreBoard from "../components/ScoreBoard";
 import Timer from "../components/Timer";
 import { getHighScore, setHighScore } from "../utils/localScore";
 
-const GAME_DURATION = 30; // seconds
-const CIRCLE_APPEAR_INTERVAL = 1500; // ms, time between circles
-const CIRCLE_VISIBLE_TIME = 1200; // ms, how long each circle stays visible
+const GAME_DURATION = 30;
+
+function getLevel(score: number) {
+  if (score >= 15) return 4;
+  if (score >= 10) return 3;
+  if (score >= 5) return 2;
+  return 1;
+}
+
+function getTiming(level: number) {
+  switch (level) {
+    case 2:
+      return { interval: 1200, visible: 950 };
+    case 3:
+      return { interval: 1000, visible: 800 };
+    case 4:
+      return { interval: 800, visible: 650 };
+    default:
+      return { interval: 1500, visible: 1200 };
+  }
+}
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -19,6 +37,7 @@ export default function HomePage() {
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [circle, setCircle] = useState<{ x: number; y: number; key: number } | null>(null);
   const [showCircle, setShowCircle] = useState(false);
+  const [level, setLevel] = useState(1);
   const circleKey = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const appearTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -41,10 +60,11 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!gameActive) return;
+    setLevel(getLevel(score));
     spawnCircle();
     return clearTimeouts;
     // eslint-disable-next-line
-  }, [gameActive]);
+  }, [gameActive, score]);
 
   const startGame = () => {
     setScore(0);
@@ -52,6 +72,7 @@ export default function HomePage() {
     setGameActive(true);
     setCircle(null);
     setShowCircle(false);
+    setLevel(1);
     circleKey.current = 0;
   };
 
@@ -68,11 +89,12 @@ export default function HomePage() {
 
   const spawnCircle = () => {
     setShowCircle(false);
+    const { interval, visible } = getTiming(level);
     appearTimeout.current = setTimeout(() => {
       let x = 100, y = 100;
       if (typeof window !== "undefined") {
         const padding = 80;
-        const circleSize = 96; // w-24 = 96px
+        const circleSize = 96;
         const width = Math.max(0, window.innerWidth - padding * 2 - circleSize);
         const height = Math.max(0, window.innerHeight - 180 - circleSize);
         x = Math.floor(Math.random() * width + padding);
@@ -83,9 +105,9 @@ export default function HomePage() {
       setShowCircle(true);
       visibleTimeout.current = setTimeout(() => {
         setShowCircle(false);
-        spawnCircle();
-      }, CIRCLE_VISIBLE_TIME);
-    }, CIRCLE_APPEAR_INTERVAL - CIRCLE_VISIBLE_TIME);
+        if (gameActive) spawnCircle();
+      }, visible);
+    }, interval - visible);
   };
 
   const clearTimeouts = () => {
@@ -97,7 +119,7 @@ export default function HomePage() {
   const handleCircleTap = () => {
     setScore(s => s + 1);
     setShowCircle(false);
-    spawnCircle();
+    // Next spawn will be triggered by useEffect on score change
   };
 
   useEffect(() => () => clearTimeouts(), []);
@@ -109,6 +131,9 @@ export default function HomePage() {
       <div className="w-full flex justify-between items-center px-6 py-4 fixed top-0 left-0 z-20">
         <ScoreBoard score={score} highScore={highScore} animate={gameActive} />
         <Timer time={timeLeft} />
+        {gameActive && (
+          <div className="text-lg font-bold text-pink-300 ml-4">Level {level}</div>
+        )}
       </div>
       <div className="flex flex-col items-center justify-center w-full h-full pt-24">
         {!gameActive && (
