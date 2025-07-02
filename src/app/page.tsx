@@ -4,10 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import Circle from "../components/Circle";
 import ScoreBoard from "../components/ScoreBoard";
-import Timer from "../components/Timer";
 import { getHighScore, setHighScore } from "../utils/localScore";
-
-const GAME_DURATION = 30;
 
 function getLevel(score: number) {
   if (score >= 15) return 4;
@@ -34,12 +31,11 @@ export default function HomePage() {
   const [gameActive, setGameActive] = useState(false);
   const [score, setScore] = useState(0);
   const [highScore, setHighScoreState] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [circle, setCircle] = useState<{ x: number; y: number; key: number } | null>(null);
   const [showCircle, setShowCircle] = useState(false);
   const [level, setLevel] = useState(1);
+  const [gameOver, setGameOver] = useState(false);
   const circleKey = useRef(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const appearTimeout = useRef<NodeJS.Timeout | null>(null);
   const visibleTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -49,27 +45,20 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!gameActive) return;
-    timerRef.current = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameActive]);
-
-  useEffect(() => {
-    if (gameActive && timeLeft <= 0) endGame();
-  }, [timeLeft, gameActive]);
-
-  useEffect(() => {
-    if (!gameActive) return;
     setLevel(getLevel(score));
+  }, [score]);
+
+  useEffect(() => {
+    if (!gameActive) return;
     spawnCircle();
     return clearTimeouts;
     // eslint-disable-next-line
-  }, [gameActive, score]);
+  }, [gameActive, level]);
 
   const startGame = () => {
     setScore(0);
-    setTimeLeft(GAME_DURATION);
     setGameActive(true);
+    setGameOver(false);
     setCircle(null);
     setShowCircle(false);
     setLevel(1);
@@ -78,6 +67,7 @@ export default function HomePage() {
 
   const endGame = () => {
     setGameActive(false);
+    setGameOver(true);
     setCircle(null);
     setShowCircle(false);
     if (score > highScore) {
@@ -88,6 +78,8 @@ export default function HomePage() {
   };
 
   const spawnCircle = () => {
+    if (appearTimeout.current) clearTimeout(appearTimeout.current);
+    if (visibleTimeout.current) clearTimeout(visibleTimeout.current);
     setShowCircle(false);
     const { interval, visible } = getTiming(level);
     appearTimeout.current = setTimeout(() => {
@@ -104,8 +96,8 @@ export default function HomePage() {
       setCircle({ x, y, key: circleKey.current });
       setShowCircle(true);
       visibleTimeout.current = setTimeout(() => {
-        setShowCircle(false);
-        if (gameActive) spawnCircle();
+        // Missed the circle: knockout
+        endGame();
       }, visible);
     }, interval - visible);
   };
@@ -113,13 +105,13 @@ export default function HomePage() {
   const clearTimeouts = () => {
     if (appearTimeout.current) clearTimeout(appearTimeout.current);
     if (visibleTimeout.current) clearTimeout(visibleTimeout.current);
-    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const handleCircleTap = () => {
+    if (visibleTimeout.current) clearTimeout(visibleTimeout.current); // Clear miss timeout
     setScore(s => s + 1);
     setShowCircle(false);
-    // Next spawn will be triggered by useEffect on score change
+    spawnCircle();
   };
 
   useEffect(() => () => clearTimeouts(), []);
@@ -130,7 +122,6 @@ export default function HomePage() {
     <main className="min-h-screen bg-black flex flex-col items-center justify-start relative overflow-hidden">
       <div className="w-full flex justify-between items-center px-6 py-4 fixed top-0 left-0 z-20">
         <ScoreBoard score={score} highScore={highScore} animate={gameActive} />
-        <Timer time={timeLeft} />
         {gameActive && (
           <div className="text-lg font-bold text-pink-300 ml-4">Level {level}</div>
         )}
@@ -139,7 +130,7 @@ export default function HomePage() {
         {!gameActive && (
           <div className="flex flex-col items-center gap-4">
             <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-neon mb-4">ReflexRush</h1>
-            {timeLeft !== GAME_DURATION && (
+            {gameOver && (
               <div className="text-xl text-pink-400 font-bold">
                 Game Over!<br />
                 <span className="text-white">Score: {score}</span>
@@ -151,7 +142,7 @@ export default function HomePage() {
               className="mt-6 px-8 py-3 bg-pink-600 text-white rounded-full text-xl font-bold shadow-lg hover:bg-pink-500 transition"
               onClick={startGame}
             >
-              {timeLeft === GAME_DURATION ? "Start Game" : "Restart"}
+              {gameOver ? "Restart" : "Start Game"}
             </button>
           </div>
         )}
