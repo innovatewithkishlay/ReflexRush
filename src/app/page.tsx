@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Circle from "../components/Circle";
-import ScoreBoard from "../components/ScoreBoard";
+// import ScoreBoard from "../components/ScoreBoard";
 import { getHighScore, setHighScore } from "../utils/localScore";
 
 function getLevel(score: number) {
@@ -110,8 +110,8 @@ export default function HomePage() {
     appearTimeout.current = setTimeout(() => {
       let x = 100, y = 100;
       if (typeof window !== "undefined") {
-        const padding = 80;
-        const circleSize = 128;
+        const padding = 40;
+        const circleSize = 96;
         const width = Math.max(0, window.innerWidth - padding * 2 - circleSize);
         const height = Math.max(0, window.innerHeight - 180 - circleSize);
         x = Math.floor(Math.random() * width + padding);
@@ -160,25 +160,31 @@ export default function HomePage() {
   if (!mounted) return null;
 
   return (
-    <main className={`min-h-screen flex flex-col items-center justify-start relative overflow-hidden transition-colors duration-500
+    <main className={`min-h-screen flex flex-col items-center justify-start relative overflow-hidden transition-colors duration-500 px-2 sm:px-4
       ${level >= 8 ? "bg-gradient-to-b from-purple-900 to-black"
       : level >= 5 ? "bg-gradient-to-b from-pink-900 to-black"
       : "bg-black"}`}>
-      <div className="w-full flex justify-between items-center px-6 py-4 fixed top-0 left-0 z-20">
-        <ScoreBoard score={score} highScore={highScore} animate={gameActive} />
-        <div className="text-lg font-bold text-pink-300 ml-4">Level {level}</div>
-        <div className="text-white ml-4">❤️ {lives}</div>
-      </div>
 
-      <div className="flex flex-col items-center justify-center w-full h-full pt-24">
+      {/* Header */}
+      <header className="w-full flex flex-wrap justify-between items-center px-4 py-3 fixed top-0 left-0 z-20 bg-black bg-opacity-60 backdrop-blur-md shadow-md">
+        <div className="text-xs sm:text-sm md:text-base text-white flex items-center gap-2">
+          <span className="text-pink-300 font-semibold">Level {level}</span>
+          <span className="text-white">❤️ {lives}</span>
+        </div>
+      </header>
+
+      {/* Game Area */}
+      <div className="flex flex-col items-center justify-center w-full h-full pt-28 sm:pt-24">
         {!gameActive && !showPrompt && (
-          <div className="flex flex-col items-center gap-4">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-neon mb-4">ReflexRush</h1>
+          <div className="flex flex-col items-center gap-4 text-center max-w-[90vw]">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-neon mb-3">
+              ReflexRush
+            </h2>
             {gameOver && (
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-xl text-pink-400 font-bold text-center"
+                className="text-base sm:text-lg text-pink-400 font-bold"
               >
                 Game Over!
                 <br />
@@ -194,13 +200,13 @@ export default function HomePage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="text-2xl font-extrabold text-yellow-300 mt-4"
+                className="text-xl sm:text-2xl font-extrabold text-yellow-300 mt-4"
               >
                 🎉 New Record!
               </motion.div>
             )}
             <button
-              className="mt-6 px-8 py-3 bg-pink-600 text-white rounded-full text-xl font-bold shadow-lg hover:bg-pink-500 transition"
+              className="mt-4 px-6 py-3 bg-pink-600 text-white rounded-full text-lg sm:text-xl font-bold shadow-lg hover:bg-pink-500 transition"
               onClick={startGame}
             >
               {gameOver ? "Restart" : "Start Game"}
@@ -210,7 +216,7 @@ export default function HomePage() {
 
         {showPrompt && (
           <div className="flex flex-col items-center justify-center bg-black bg-opacity-90 fixed inset-0 z-50 text-center p-4">
-            <div className="text-white text-2xl font-bold mb-4">You missed!</div>
+            <div className="text-white text-xl sm:text-2xl font-bold mb-4">You missed!</div>
             <div className="text-pink-200 mb-4">You have {lives} lives left. Continue?</div>
             <div className="flex gap-4">
               <button onClick={handleContinue} className="bg-green-500 px-6 py-2 rounded text-white font-bold">Continue</button>
@@ -219,7 +225,7 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="relative w-full h-[70vh] flex-1">
+        <div className="relative w-full h-[60vh] sm:h-[70vh] flex-1">
           <AnimatePresence>
             {gameActive && showCircle && circle && (
               <Circle
