@@ -39,12 +39,14 @@ export default function HomePage() {
   const [gameActive, setGameActive] = useState(false);
   const [score, setScore] = useState(0);
   const [highScore, setHighScoreState] = useState(0);
-  const [maxLevel, setMaxLevelState] = useState(1); // new: track max level
+  const [maxLevel, setMaxLevelState] = useState(1);
   const [circle, setCircle] = useState<{ x: number; y: number; key: number } | null>(null);
   const [showCircle, setShowCircle] = useState(false);
   const [level, setLevel] = useState(1);
   const [gameOver, setGameOver] = useState(false);
-  const [celebrate, setCelebrate] = useState(false); // new: celebration flag
+  const [celebrate, setCelebrate] = useState(false);
+  const [lives, setLives] = useState(3);
+  const [showPrompt, setShowPrompt] = useState(false);
   const circleKey = useRef(0);
   const appearTimeout = useRef<NodeJS.Timeout | null>(null);
   const visibleTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -75,6 +77,7 @@ export default function HomePage() {
     setShowCircle(false);
     setCelebrate(false);
     setLevel(1);
+    setLives(3);
     circleKey.current = 0;
   };
 
@@ -85,19 +88,16 @@ export default function HomePage() {
     setShowCircle(false);
 
     let newCelebrate = false;
-
     if (score > highScore) {
       setHighScore(score);
       setHighScoreState(score);
       newCelebrate = true;
     }
-
     if (level > maxLevel) {
       localStorage.setItem("maxLevel", String(level));
       setMaxLevelState(level);
       newCelebrate = true;
     }
-
     setCelebrate(newCelebrate);
     clearTimeouts();
   };
@@ -121,7 +121,12 @@ export default function HomePage() {
       setCircle({ x, y, key: circleKey.current });
       setShowCircle(true);
       visibleTimeout.current = setTimeout(() => {
-        endGame();
+        if (lives > 1) {
+          setShowPrompt(true);
+          setGameActive(false);
+        } else {
+          endGame();
+        }
       }, visible);
     }, interval - visible);
   };
@@ -138,6 +143,18 @@ export default function HomePage() {
     spawnCircle();
   };
 
+  const handleContinue = () => {
+    setLives(lives - 1);
+    setShowPrompt(false);
+    setGameActive(true);
+    spawnCircle();
+  };
+
+  const handleQuit = () => {
+    setShowPrompt(false);
+    endGame();
+  };
+
   useEffect(() => () => clearTimeouts(), []);
 
   if (!mounted) return null;
@@ -149,15 +166,12 @@ export default function HomePage() {
       : "bg-black"}`}>
       <div className="w-full flex justify-between items-center px-6 py-4 fixed top-0 left-0 z-20">
         <ScoreBoard score={score} highScore={highScore} animate={gameActive} />
-        {gameActive && (
-          <div className="text-lg font-bold text-pink-300 ml-4">
-            Level {level}
-          </div>
-        )}
+        <div className="text-lg font-bold text-pink-300 ml-4">Level {level}</div>
+        <div className="text-white ml-4">❤️ {lives}</div>
       </div>
 
       <div className="flex flex-col items-center justify-center w-full h-full pt-24">
-        {!gameActive && (
+        {!gameActive && !showPrompt && (
           <div className="flex flex-col items-center gap-4">
             <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-neon mb-4">ReflexRush</h1>
             {gameOver && (
@@ -191,6 +205,17 @@ export default function HomePage() {
             >
               {gameOver ? "Restart" : "Start Game"}
             </button>
+          </div>
+        )}
+
+        {showPrompt && (
+          <div className="flex flex-col items-center justify-center bg-black bg-opacity-90 fixed inset-0 z-50 text-center p-4">
+            <div className="text-white text-2xl font-bold mb-4">You missed!</div>
+            <div className="text-pink-200 mb-4">You have {lives} lives left. Continue?</div>
+            <div className="flex gap-4">
+              <button onClick={handleContinue} className="bg-green-500 px-6 py-2 rounded text-white font-bold">Continue</button>
+              <button onClick={handleQuit} className="bg-red-500 px-6 py-2 rounded text-white font-bold">Quit</button>
+            </div>
           </div>
         )}
 
