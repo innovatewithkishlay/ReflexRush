@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+
+@layer utilities {
+  .shadow-neon {
+    box-shadow:
+      0 0 16px 4px #ec4899,
+      0 0 32px 8px #fff2,
+      0 0 64px 16px #ec4899;
+  }
+  .drop-shadow-neon {
+    filter: drop-shadow(0 0 8px #ec4899) drop-shadow(0 0 2px #fff2);
+  }
+}

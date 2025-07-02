@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -8,27 +7,44 @@ import ScoreBoard from "../components/ScoreBoard";
 import Timer from "../components/Timer";
 import { getHighScore, setHighScore } from "../utils/localScore";
 
-const GAME_DURATION = 30; 
-const CIRCLE_APPEAR_INTERVAL = 1500; 
-const CIRCLE_VISIBLE_TIME = 1200; 
-
-type CircleData = {
-  x: number;
-  y: number;
-  key: number;
-};
+const GAME_DURATION = 30; // seconds
+const CIRCLE_APPEAR_INTERVAL = 1500; // ms, time between circles
+const CIRCLE_VISIBLE_TIME = 1200; // ms, how long each circle stays visible
 
 export default function HomePage() {
+  const [mounted, setMounted] = useState(false);
   const [gameActive, setGameActive] = useState(false);
   const [score, setScore] = useState(0);
-  const [highScore, setHighScoreState] = useState(getHighScore());
+  const [highScore, setHighScoreState] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
-  const [circle, setCircle] = useState<CircleData | null>(null);
+  const [circle, setCircle] = useState<{ x: number; y: number; key: number } | null>(null);
   const [showCircle, setShowCircle] = useState(false);
-  const [circleKey, setCircleKey] = useState(0);
+  const circleKey = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const appearTimeout = useRef<NodeJS.Timeout | null>(null);
   const visibleTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setHighScoreState(getHighScore());
+  }, []);
+
+  useEffect(() => {
+    if (!gameActive) return;
+    timerRef.current = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [gameActive]);
+
+  useEffect(() => {
+    if (gameActive && timeLeft <= 0) endGame();
+  }, [timeLeft, gameActive]);
+
+  useEffect(() => {
+    if (!gameActive) return;
+    spawnCircle();
+    return clearTimeouts;
+    // eslint-disable-next-line
+  }, [gameActive]);
 
   const startGame = () => {
     setScore(0);
@@ -36,7 +52,7 @@ export default function HomePage() {
     setGameActive(true);
     setCircle(null);
     setShowCircle(false);
-    setCircleKey(0);
+    circleKey.current = 0;
   };
 
   const endGame = () => {
@@ -50,34 +66,20 @@ export default function HomePage() {
     clearTimeouts();
   };
 
-  useEffect(() => {
-    if (!gameActive) return;
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => t - 1);
-    }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [gameActive]);
-
-  useEffect(() => {
-    if (gameActive && timeLeft <= 0) {
-      endGame();
-    }
-  }, [timeLeft, gameActive]);
-
-  useEffect(() => {
-    if (!gameActive) return;
-    spawnCircle();
-    return clearTimeouts;
-  }, [gameActive]);
-
   const spawnCircle = () => {
     setShowCircle(false);
     appearTimeout.current = setTimeout(() => {
-      const pos = getRandomPosition();
-      setCircle({ ...pos, key: circleKey + 1 });
-      setCircleKey((k) => k + 1);
+      let x = 100, y = 100;
+      if (typeof window !== "undefined") {
+        const padding = 80;
+        const circleSize = 96; // w-24 = 96px
+        const width = Math.max(0, window.innerWidth - padding * 2 - circleSize);
+        const height = Math.max(0, window.innerHeight - 180 - circleSize);
+        x = Math.floor(Math.random() * width + padding);
+        y = Math.floor(Math.random() * height + padding + 60);
+      }
+      circleKey.current += 1;
+      setCircle({ x, y, key: circleKey.current });
       setShowCircle(true);
       visibleTimeout.current = setTimeout(() => {
         setShowCircle(false);
@@ -92,24 +94,15 @@ export default function HomePage() {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const getRandomPosition = () => {
-    const padding = 80;
-    const width = window.innerWidth - padding * 2;
-    const height = window.innerHeight - 180; 
-    const x = Math.random() * width + padding;
-    const y = Math.random() * height + padding + 60;
-    return { x, y };
-  };
-
   const handleCircleTap = () => {
-    setScore((s) => s + 1);
+    setScore(s => s + 1);
     setShowCircle(false);
     spawnCircle();
   };
 
-  useEffect(() => {
-    return () => clearTimeouts();
-  }, []);
+  useEffect(() => () => clearTimeouts(), []);
+
+  if (!mounted) return null;
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-start relative overflow-hidden">
