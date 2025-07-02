@@ -86,11 +86,11 @@ const spawnCircle = () => {
     let x = 100, y = 100;
     if (typeof window !== "undefined") {
       const padding = 80;
-      const circleSize = 112; 
+      const circleSize = 128; 
       const width = Math.max(0, window.innerWidth - padding * 2 - circleSize);
       const height = Math.max(0, window.innerHeight - 180 - circleSize);
-      x = Math.min(Math.max(padding, Math.floor(Math.random() * width + padding)), window.innerWidth - circleSize - padding);
-      y = Math.min(Math.max(padding + 60, Math.floor(Math.random() * height + padding + 60)), window.innerHeight - circleSize - padding);
+      x = Math.floor(Math.random() * width + padding);
+      y = Math.floor(Math.random() * height + padding + 60);
     }
     circleKey.current += 1;
     setCircle({ x, y, key: circleKey.current });
@@ -100,6 +100,7 @@ const spawnCircle = () => {
     }, visible);
   }, interval - visible);
 };
+
 
 
   const clearTimeouts = () => {
