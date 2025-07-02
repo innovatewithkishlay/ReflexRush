@@ -77,30 +77,30 @@ export default function HomePage() {
     clearTimeouts();
   };
 
-  const spawnCircle = () => {
-    if (appearTimeout.current) clearTimeout(appearTimeout.current);
-    if (visibleTimeout.current) clearTimeout(visibleTimeout.current);
-    setShowCircle(false);
-    const { interval, visible } = getTiming(level);
-    appearTimeout.current = setTimeout(() => {
-      let x = 100, y = 100;
-      if (typeof window !== "undefined") {
-        const padding = 80;
-        const circleSize = 96;
-        const width = Math.max(0, window.innerWidth - padding * 2 - circleSize);
-        const height = Math.max(0, window.innerHeight - 180 - circleSize);
-        x = Math.floor(Math.random() * width + padding);
-        y = Math.floor(Math.random() * height + padding + 60);
-      }
-      circleKey.current += 1;
-      setCircle({ x, y, key: circleKey.current });
-      setShowCircle(true);
-      visibleTimeout.current = setTimeout(() => {
-        // Missed the circle: knockout
-        endGame();
-      }, visible);
-    }, interval - visible);
-  };
+const spawnCircle = () => {
+  if (appearTimeout.current) clearTimeout(appearTimeout.current);
+  if (visibleTimeout.current) clearTimeout(visibleTimeout.current);
+  setShowCircle(false);
+  const { interval, visible } = getTiming(level);
+  appearTimeout.current = setTimeout(() => {
+    let x = 100, y = 100;
+    if (typeof window !== "undefined") {
+      const padding = 80;
+      const circleSize = 112; 
+      const width = Math.max(0, window.innerWidth - padding * 2 - circleSize);
+      const height = Math.max(0, window.innerHeight - 180 - circleSize);
+      x = Math.min(Math.max(padding, Math.floor(Math.random() * width + padding)), window.innerWidth - circleSize - padding);
+      y = Math.min(Math.max(padding + 60, Math.floor(Math.random() * height + padding + 60)), window.innerHeight - circleSize - padding);
+    }
+    circleKey.current += 1;
+    setCircle({ x, y, key: circleKey.current });
+    setShowCircle(true);
+    visibleTimeout.current = setTimeout(() => {
+      endGame();
+    }, visible);
+  }, interval - visible);
+};
+
 
   const clearTimeouts = () => {
     if (appearTimeout.current) clearTimeout(appearTimeout.current);
