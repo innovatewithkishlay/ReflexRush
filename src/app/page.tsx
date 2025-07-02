@@ -1,103 +1,155 @@
-import Image from "next/image";
 
-export default function Home() {
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
+import Circle from "../components/Circle";
+import ScoreBoard from "../components/ScoreBoard";
+import Timer from "../components/Timer";
+import { getHighScore, setHighScore } from "../utils/localScore";
+
+const GAME_DURATION = 30; 
+const CIRCLE_APPEAR_INTERVAL = 1500; 
+const CIRCLE_VISIBLE_TIME = 1200; 
+
+type CircleData = {
+  x: number;
+  y: number;
+  key: number;
+};
+
+export default function HomePage() {
+  const [gameActive, setGameActive] = useState(false);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScoreState] = useState(getHighScore());
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [circle, setCircle] = useState<CircleData | null>(null);
+  const [showCircle, setShowCircle] = useState(false);
+  const [circleKey, setCircleKey] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const appearTimeout = useRef<NodeJS.Timeout | null>(null);
+  const visibleTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const startGame = () => {
+    setScore(0);
+    setTimeLeft(GAME_DURATION);
+    setGameActive(true);
+    setCircle(null);
+    setShowCircle(false);
+    setCircleKey(0);
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    setCircle(null);
+    setShowCircle(false);
+    if (score > highScore) {
+      setHighScore(score);
+      setHighScoreState(score);
+    }
+    clearTimeouts();
+  };
+
+  useEffect(() => {
+    if (!gameActive) return;
+    timerRef.current = setInterval(() => {
+      setTimeLeft((t) => t - 1);
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [gameActive]);
+
+  useEffect(() => {
+    if (gameActive && timeLeft <= 0) {
+      endGame();
+    }
+  }, [timeLeft, gameActive]);
+
+  useEffect(() => {
+    if (!gameActive) return;
+    spawnCircle();
+    return clearTimeouts;
+  }, [gameActive]);
+
+  const spawnCircle = () => {
+    setShowCircle(false);
+    appearTimeout.current = setTimeout(() => {
+      const pos = getRandomPosition();
+      setCircle({ ...pos, key: circleKey + 1 });
+      setCircleKey((k) => k + 1);
+      setShowCircle(true);
+      visibleTimeout.current = setTimeout(() => {
+        setShowCircle(false);
+        spawnCircle();
+      }, CIRCLE_VISIBLE_TIME);
+    }, CIRCLE_APPEAR_INTERVAL - CIRCLE_VISIBLE_TIME);
+  };
+
+  const clearTimeouts = () => {
+    if (appearTimeout.current) clearTimeout(appearTimeout.current);
+    if (visibleTimeout.current) clearTimeout(visibleTimeout.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const getRandomPosition = () => {
+    const padding = 80;
+    const width = window.innerWidth - padding * 2;
+    const height = window.innerHeight - 180; 
+    const x = Math.random() * width + padding;
+    const y = Math.random() * height + padding + 60;
+    return { x, y };
+  };
+
+  const handleCircleTap = () => {
+    setScore((s) => s + 1);
+    setShowCircle(false);
+    spawnCircle();
+  };
+
+  useEffect(() => {
+    return () => clearTimeouts();
+  }, []);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-screen bg-black flex flex-col items-center justify-start relative overflow-hidden">
+      <div className="w-full flex justify-between items-center px-6 py-4 fixed top-0 left-0 z-20">
+        <ScoreBoard score={score} highScore={highScore} animate={gameActive} />
+        <Timer time={timeLeft} />
+      </div>
+      <div className="flex flex-col items-center justify-center w-full h-full pt-24">
+        {!gameActive && (
+          <div className="flex flex-col items-center gap-4">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-neon mb-4">ReflexRush</h1>
+            {timeLeft !== GAME_DURATION && (
+              <div className="text-xl text-pink-400 font-bold">
+                Game Over!<br />
+                <span className="text-white">Score: {score}</span>
+                <br />
+                <span className="text-pink-200">High Score: {highScore}</span>
+              </div>
+            )}
+            <button
+              className="mt-6 px-8 py-3 bg-pink-600 text-white rounded-full text-xl font-bold shadow-lg hover:bg-pink-500 transition"
+              onClick={startGame}
+            >
+              {timeLeft === GAME_DURATION ? "Start Game" : "Restart"}
+            </button>
+          </div>
+        )}
+        <div className="relative w-full h-[70vh] flex-1">
+          <AnimatePresence>
+            {gameActive && showCircle && circle && (
+              <Circle
+                key={circle.key}
+                x={circle.x}
+                y={circle.y}
+                onTap={handleCircleTap}
+              />
+            )}
+          </AnimatePresence>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }
