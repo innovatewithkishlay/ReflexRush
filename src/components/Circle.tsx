@@ -11,7 +11,7 @@ type CircleProps = {
 export default function Circle({ x, y, onTap }: CircleProps) {
   return (
     <motion.button
-      className="absolute w-32 h-32 flex items-center justify-center rounded-full z-50"
+      className="absolute w-32 h-32 flex items-center justify-center rounded-full z-50 cursor-pointer"
       style={{ left: x, top: y, background: "transparent", border: "none" }}
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
